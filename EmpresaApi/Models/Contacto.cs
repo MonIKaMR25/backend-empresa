@@ -7,11 +7,11 @@ public class Contacto
     public int Id { get; set; }
     
     [Required(ErrorMessage = "El nombre es requerido")]
-    [StringLength(100, MinimumLength = 1, ErrorMessage = "El nombre debe tener entre 1 y 100 caracteres")]
+    [StringLength(100, ErrorMessage = "El nombre debe tener máximo 100 caracteres")]
     public string Nombre { get; set; } = string.Empty;
     
     [Required(ErrorMessage = "El apellido es requerido")]
-    [StringLength(100, MinimumLength = 1, ErrorMessage = "El apellido debe tener entre 1 y 100 caracteres")]
+    [StringLength(100, ErrorMessage = "El apellido debe tener máximo 100 caracteres")]
     public string Apellido { get; set; } = string.Empty;
     
     [Required(ErrorMessage = "El teléfono es requerido")]
