@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using EmpresaApi.Data;
 using EmpresaApi.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace EmpresaApi.Endpoints;
 
@@ -29,6 +30,16 @@ public static class ContactosEndpoints
         // Agregar un nuevo contacto
         group.MapPost("/", async (Contacto contacto, AppDbContext db) =>
         {
+            // Validar el modelo
+            var validationResults = new List<ValidationResult>();
+            var validationContext = new ValidationContext(contacto);
+            
+            if (!Validator.TryValidateObject(contacto, validationContext, validationResults, true))
+            {
+                var errors = validationResults.Select(vr => vr.ErrorMessage).ToList();
+                return Results.BadRequest(new { errors });
+            }
+            
             db.Contactos.Add(contacto);
             await db.SaveChangesAsync();
             return Results.Created($"/api/contactos/{contacto.Id}", contacto);
@@ -38,6 +49,16 @@ public static class ContactosEndpoints
         // Actualizar un contacto
         group.MapPut("/{id}", async (int id, Contacto contactoActualizado, AppDbContext db) =>
         {
+            // Validar el modelo
+            var validationResults = new List<ValidationResult>();
+            var validationContext = new ValidationContext(contactoActualizado);
+            
+            if (!Validator.TryValidateObject(contactoActualizado, validationContext, validationResults, true))
+            {
+                var errors = validationResults.Select(vr => vr.ErrorMessage).ToList();
+                return Results.BadRequest(new { errors });
+            }
+            
             var contacto = await db.Contactos.FindAsync(id);
             if (contacto is null)
                 return Results.NotFound();
