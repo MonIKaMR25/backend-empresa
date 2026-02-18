@@ -1,11 +1,26 @@
 using Microsoft.EntityFrameworkCore;
 using EmpresaApi.Data;
 using EmpresaApi.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace EmpresaApi.Endpoints;
 
 public static class ContactosEndpoints
 {
+    private static IResult? ValidateContacto(Contacto contacto)
+    {
+        var validationResults = new List<ValidationResult>();
+        var validationContext = new ValidationContext(contacto);
+        
+        if (!Validator.TryValidateObject(contacto, validationContext, validationResults, true))
+        {
+            var errors = validationResults.Select(vr => vr.ErrorMessage).ToList();
+            return Results.BadRequest(new { errors });
+        }
+        
+        return null;
+    }
+
     public static void MapContactosEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/contactos").WithTags("Contactos");
@@ -29,6 +44,10 @@ public static class ContactosEndpoints
         // Agregar un nuevo contacto
         group.MapPost("/", async (Contacto contacto, AppDbContext db) =>
         {
+            var validationError = ValidateContacto(contacto);
+            if (validationError is not null)
+                return validationError;
+            
             db.Contactos.Add(contacto);
             await db.SaveChangesAsync();
             return Results.Created($"/api/contactos/{contacto.Id}", contacto);
@@ -38,6 +57,10 @@ public static class ContactosEndpoints
         // Actualizar un contacto
         group.MapPut("/{id}", async (int id, Contacto contactoActualizado, AppDbContext db) =>
         {
+            var validationError = ValidateContacto(contactoActualizado);
+            if (validationError is not null)
+                return validationError;
+            
             var contacto = await db.Contactos.FindAsync(id);
             if (contacto is null)
                 return Results.NotFound();
