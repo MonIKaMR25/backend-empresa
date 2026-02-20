@@ -18,7 +18,11 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseStaticFiles();
+    app.UseSwaggerUI(c =>
+    {
+        c.InjectJavascript("/scripts/swagger-script.js");
+    });
 }
 
 app.MapGet("/", () => "Hello World!");
