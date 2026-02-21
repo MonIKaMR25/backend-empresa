@@ -31,3 +31,5 @@ app.MapGet("/", () => "Hello World!");
 app.MapContactosEndpoints();
 
 app.Run();
+
+public partial class Program { }
