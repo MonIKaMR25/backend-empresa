@@ -1,0 +1,153 @@
+name: Deploy Azure App Service Infra
+
+on:
+  workflow_dispatch:
+    inputs:
+      resourceGroup:
+        description: 'Azure resource group name'
+        required: true
+        type: string
+      location:
+        description: 'Azure region (e.g. eastus)'
+        required: true
+        type: string
+      baseName:
+        description: 'Base name for resources (web app + plan)'
+        required: true
+        type: string
+      webAppName:
+        description: 'Optional Web App name (overrides baseName-app)'
+        required: false
+        default: ''
+        type: string
+      appServicePlanName:
+        description: 'Optional App Service Plan name (overrides baseName-plan)'
+        required: false
+        default: ''
+        type: string
+      sku:
+        description: 'App Service Plan SKU (B1, S1, P1v3)'
+        required: true
+        default: 'B1'
+        type: string
+      linuxFxVersion:
+        description: 'Linux runtime (DOTNETCORE|10.0)'
+        required: false
+        default: 'DOTNETCORE|10.0'
+        type: string
+      alwaysOn:
+        description: 'Enable Always On (true/false)'
+        required: false
+        default: 'true'
+        type: string
+      connectionString:
+        description: 'Connection string for DefaultConnection'
+        required: false
+        default: 'Data Source=/home/data/empresa.db'
+        type: string
+      tags:
+        description: 'Optional tags JSON (e.g. {"env":"dev","project":"backend-empresa"})'
+        required: false
+        default: '{}'
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          auth-type: service-principal
+          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Validate Bicep
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            set -euo pipefail
+
+            rg="${{ inputs.resourceGroup }}"
+            location="${{ inputs.location }}"
+            base="${{ inputs.baseName }}"
+            webAppNameInput="${{ inputs.webAppName }}"
+            planNameInput="${{ inputs.appServicePlanName }}"
+            sku="${{ inputs.sku }}"
+            linuxFxVersion="${{ inputs.linuxFxVersion }}"
+            alwaysOn="${{ inputs.alwaysOn }}"
+            connectionString="${{ inputs.connectionString }}"
+            tags='${{ inputs.tags }}'
+
+            if [[ -n "$webAppNameInput" ]]; then
+              webAppName="$webAppNameInput"
+            else
+              webAppName="${base}-app"
+            fi
+
+            if [[ -n "$planNameInput" ]]; then
+              planName="$planNameInput"
+            else
+              planName="${base}-plan"
+            fi
+
+            az deployment group validate \
+              --resource-group "$rg" \
+              --template-file infra/appservice.bicep \
+              --parameters location="$location" \
+              --parameters webAppName="$webAppName" \
+              --parameters appServicePlanName="$planName" \
+              --parameters appServicePlanSku="$sku" \
+              --parameters linuxFxVersion="$linuxFxVersion" \
+              --parameters alwaysOn="$alwaysOn" \
+              --parameters defaultConnectionString="$connectionString" \
+              --parameters tags="$tags"
+
+      - name: Deploy Bicep
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            set -euo pipefail
+
+            rg="${{ inputs.resourceGroup }}"
+            location="${{ inputs.location }}"
+            base="${{ inputs.baseName }}"
+            webAppNameInput="${{ inputs.webAppName }}"
+            planNameInput="${{ inputs.appServicePlanName }}"
+            sku="${{ inputs.sku }}"
+            linuxFxVersion="${{ inputs.linuxFxVersion }}"
+            alwaysOn="${{ inputs.alwaysOn }}"
+            connectionString="${{ inputs.connectionString }}"
+            tags='${{ inputs.tags }}'
+
+            if [[ -n "$webAppNameInput" ]]; then
+              webAppName="$webAppNameInput"
+            else
+              webAppName="${base}-app"
+            fi
+
+            if [[ -n "$planNameInput" ]]; then
+              planName="$planNameInput"
+            else
+              planName="${base}-plan"
+            fi
+
+            az deployment group create \
+              --resource-group "$rg" \
+              --template-file infra/appservice.bicep \
+              --parameters location="$location" \
+              --parameters webAppName="$webAppName" \
+              --parameters appServicePlanName="$planName" \
+              --parameters appServicePlanSku="$sku" \
+              --parameters linuxFxVersion="$linuxFxVersion" \
+              --parameters alwaysOn="$alwaysOn" \
+              --parameters defaultConnectionString="$connectionString" \
+              --parameters tags="$tags"
